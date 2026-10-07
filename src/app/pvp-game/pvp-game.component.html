@@ -1,0 +1,33 @@
+<div class="pvp-game">
+  <h2>PvP битва</h2>
+  <div class="players">
+    <div class="player" [class.active]="myTurn && !gameFinished">
+      <h3>Вы</h3>
+      <div>Сумма: {{ mySum }} {{ mySum > 20 ? '🔥 ПЕРЕБОР' : '' }}</div>
+      <div>Победы: {{ myWins }}</div>
+      <div *ngIf="myStand">🛑 Остановились</div>
+    </div>
+    <div class="player">
+      <h3>Противник</h3>
+      <div>Сумма: {{ oppSum }} {{ oppSum > 20 ? '🔥 ПЕРЕБОР' : '' }}</div>
+      <div>Победы: {{ oppWins }}</div>
+      <div *ngIf="oppStand">🛑 Остановился</div>
+    </div>
+  </div>
+
+  <div class="controls" *ngIf="!gameFinished">
+    <div *ngIf="myTurn && !myStand">
+      <button (click)="addRandomCard()">🎴 Взять карту</button>
+      <button (click)="stand()">🛑 Стоп</button>
+    </div>
+    <div *ngIf="!myTurn && !gameFinished && !oppStand">
+      <p>⏳ Ход противника...</p>
+    </div>
+    <button (click)="surrender()" class="surrender">🏳️ Сдаться</button>
+  </div>
+
+  <div *ngIf="gameFinished" class="finished">
+    <h3>{{ winnerText }}</h3>
+    <button routerLink="/">🏠 Главное меню</button>
+  </div>
+</div>

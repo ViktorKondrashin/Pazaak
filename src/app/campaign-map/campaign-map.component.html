@@ -1,0 +1,24 @@
+<div id="campaign-container">
+  <h2>РЕЖИМ: КАМПАНИЯ</h2>
+  
+  <div class="crystals-display">
+    💎 Кристаллы: {{ crystals }}
+  </div>
+
+  <div class="planets-grid">
+    <div *ngFor="let planet of planets" 
+         class="planet-card" 
+         [class.unlocked]="planet.isUnlocked"
+         [class.beaten]="planet.isBeaten"
+         (click)="selectPlanet(planet)">
+      <div class="planet-name">{{ planet.name }}</div>
+      <div class="planet-status">
+        <span *ngIf="planet.isBeaten">✅</span>
+        <span *ngIf="!planet.isUnlocked">🔒</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Кнопка возврата в главное меню -->
+  <button class="back-button" routerLink="/">В главное меню</button>
+</div>

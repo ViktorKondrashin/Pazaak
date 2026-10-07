@@ -1,0 +1,64 @@
+<div id="background">
+
+
+    <h2 id="TitlePlayer">ИГРОК</h2>
+    <h2 id="TitleOpp">ОППОНЕНТ</h2>
+    <div id="BlockOfPlayerField">
+
+    </div>
+
+    <div id="BlockOfSystemField">
+
+    </div>
+
+
+
+    <button id="BtnEndTurn" (click)="EndTurn()">Завершить ход</button>
+    <button id="BtnStop" (click)="Stand()">Стоп</button>
+    <button id="BtnSurr" (click)="Surrender()">Сдаться</button>
+
+    <div class="ChosenCards" id="UserChosenCards">
+
+    </div>
+
+    <div id="Info">
+        <div id="playerTurnChecker" class="Checker">
+
+        </div>
+        <div id="systemTurnChecker" class="Checker">
+
+        </div>
+        <p id="TurnP">Ход</p>
+        <div><p id="SumPlayer">{{this.SumOfUserCards}}</p></div>
+        <div><p id="SumSystem">{{this.SumOfSystemCards}}</p></div>
+        
+    </div>
+
+    <div class="ChosenCards" id="SystemChosenCards">
+
+    </div>
+
+    <div id="PlayerWins">
+        <div class="Checker" style="top: 18vh; left: 1.85vw;" id="1winPlayer"></div>
+        <div class="Checker" style="top: 22.5vh; left: 1.85vw;" id="2winPlayer"></div>
+        <div class="Checker" style="top: 27vh; left: 1.85vw;" id="3winPlayer"></div>
+    </div>
+
+    <div id="SystemWins">
+        <div class="Checker" style="top: 18vh; left: 95vw;" id="1winSystem"></div>
+        <div class="Checker" style="top: 22.5vh; left: 95vw;" id="2winSystem"></div>
+        <div class="Checker" style="top: 27vh; left: 95vw;" id="3winSystem"></div>
+    </div>
+    <div id="ResultOf" >
+        <p></p>
+        <button (click)="HideDisplayingResult()"><strong>Ок</strong></button>
+    </div>
+
+</div>
+<div id="ConfirmWindow" class="Window">
+    <p><strong>Вы уверены, что хотите сдаться?</strong></p>
+    <button (click)="ConfirmWindowOk()">Да</button>
+    <button (click)="ConfirmWindowCancel()">Нет</button>
+</div>
+        
+

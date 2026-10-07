@@ -1,0 +1,24 @@
+<div class="pvp-lobby">
+  <h2>PvP — Создать или присоединиться</h2>
+
+  <div class="create">
+    <button (click)="createGame()">✨ Создать игру</button>
+    <div *ngIf="roomId" class="room-info">
+      <p>🔑 ID комнаты: <strong>{{ roomId }}</strong></p>
+      <p>📎 Отправьте ссылку другу:</p>
+      <input [value]="getInviteLink()" readonly id="inviteLink">
+      <button (click)="copyLink()">📋 Копировать ссылку</button>
+      <p>⏳ Ожидание противника...</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="join">
+    <p>🔗 Или введите ID комнаты:</p>
+    <input #joinCode placeholder="например, -Oro7...">
+    <button (click)="joinGame(joinCode.value)">🚀 Присоединиться</button>
+  </div>
+
+  <button routerLink="/" class="back">🏠 На главную</button>
+</div>

@@ -1,0 +1,246 @@
+#background{
+    position: absolute;
+    left:0;
+    top:0;
+    width: 100%;
+    height: 100%;
+    background:linear-gradient(to bottom right,rgb(230, 207, 161),rgb(241, 224, 218) );
+    z-index: 1;
+}
+
+#BlockOfPlayerField{
+    position: absolute;
+    background-color: rgb(255, 246, 246);
+    height: 60vh;
+    width: 33vw;
+    left: 7vw;
+    top:15vh;
+    border-radius: 1cap;
+    box-shadow: 0 0 5px 0.5px rgb(153, 153, 153);
+}
+
+#BlockOfSystemField{
+    position: absolute;
+    background-color: rgb(255, 246, 246);
+    height: 60vh;
+    width: 33vw;
+    left: 60vw;
+    top:15vh;
+    border-radius: 1cap;
+    box-shadow: 0 0 5px 0.5px rgb(153, 153, 153);
+}
+
+#TitlePlayer{
+    font-size: 4vw;
+    position: absolute;
+    left:16.2vw;
+    text-shadow: 0.14cap 1px 2px rgb(255, 255, 255);
+    margin-top:4vh;
+    
+}
+#TitleOpp{
+    font-size: 4vw;
+    position: absolute;
+    left:64.2vw;
+    text-shadow: 0.14cap 1px 2px rgb(255, 255, 255);
+    margin-top:4vh;
+}
+
+#BtnEndTurn{
+    position: absolute;
+    font-size: 1.25vw;
+    border-radius: 0.4cap;
+    border-width: 0.1cap;
+    width: 10vw;
+    height: 6vh;
+    background-color: #fff3f3;
+    left:45vw;
+    top: 75vh;
+    cursor: pointer;
+    box-shadow: 0 0 10px 1px rgb(195, 195, 195);
+}
+
+#BtnStop{
+    position: absolute;
+    font-size: 1.7vw;
+    border-radius: 0.4cap;
+    border-width: 0.1cap;
+    width: 10vw;
+    height: 6vh;
+    background-color: #fff3f3;
+    left:45vw;
+    top: 83vh;
+    cursor: pointer;
+    box-shadow: 0 0 10px 1px rgb(195, 195, 195);
+}
+
+#BtnSurr{
+    position: absolute;
+    font-size: 1.7vw;
+    border-radius: 0.4cap;
+    border-width: 0.1cap;
+    width: 10vw;
+    height: 6vh;
+    background-color: #fff3f3;
+    left:45vw;
+    top: 90.5vh;
+    cursor: pointer;
+    box-shadow: 0 0 10px 1px rgb(195, 195, 195);
+}
+
+#BtnEndTurn:hover{
+    box-shadow: 0 0 10px 1px rgb(255, 255, 255);
+    transition:  box-shadow 0.1s ease-in-out;
+}
+#BtnStop:hover{
+    box-shadow: 0 0 10px 1px rgb(255, 255, 255);
+    transition:  box-shadow 0.1s ease-in-out;
+}
+#BtnSurr:hover{
+    box-shadow: 0 0 10px 1px rgb(255, 255, 255);
+    transition:  box-shadow 0.1s ease-in-out;
+}
+
+#Info{
+    position: absolute;
+    
+    left:40vw;
+    
+}
+.Checker{
+    position: absolute;
+    width: 3vw;
+    height: 3vw;
+    border-radius: 50%;
+    background-color: #2c2c2c;
+    -webkit-box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+    -moz-box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+    box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+}
+
+#playerTurnChecker{
+    
+    background-color: #ca2828;
+    top: 22vh;
+    left: 3vw;
+}
+
+#systemTurnChecker{
+    
+    width: 3vw;
+    height: 3vw;
+    border-radius: 50%;
+    background-color: #2c2c2c;
+    -webkit-box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+    -moz-box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+    box-shadow: 5px 5px 15px -3px rgba(0, 0, 0, 0.81);
+    top: 22vh;
+    left: 14vw;
+}
+
+#TurnP{
+    position: absolute;
+    font-size:2.5vw;
+    text-shadow: 0.14cap 1px 2px rgb(255, 255, 255);
+    top: 17.4vh;
+    left:7.8vw;
+    
+}
+
+#SumPlayer{
+    position: absolute;
+    font-size:2.5vw;
+    color: #fff3f3;
+    left:3.79vw;
+    top:25vh;
+    text-shadow: 0px 4px 11px rgb(163, 163, 163);
+}
+
+#SumSystem{
+    position: absolute;
+    font-size:2.5vw;
+    color: #fff3f3;
+    left:14.85vw;
+    top:25vh;
+    text-shadow: 0px 4px 11px rgb(163, 163, 163);
+    
+}
+
+#ResultOf{
+    position: absolute;
+    background-color: rgba(23, 191, 23, 0.5);
+    width: 16vw;
+    height: 12vh;
+    left: 42vw;
+    top: 38vh;
+    box-shadow: 0 0 5px 1px rgb(99, 148, 72);
+     text-align: center;
+     opacity: 0;
+}
+
+#ResultOf p{
+    font-size: 1.8vw;
+     text-shadow: 0.14cap 1px 2px rgb(255, 255, 255);
+     color: #1d1d1d;
+     margin-top: 0.9vh;
+     margin-bottom: 1vw;
+}
+
+#ResultOf button{
+    background-color: rgb(222, 222, 222);
+    font-size: 1.4vw;
+    width: 5.2vw;
+    height: 3.5vh;
+    border-radius: 0.5cap;
+    border-width: 0;
+    
+    -webkit-box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+    -moz-box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+    box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+    
+}
+#ResultOf button:hover{
+    box-shadow: 0 0 10px 1px rgb(202, 202, 202);
+    transition:  box-shadow 0.1s ease-in-out;
+}
+
+.Window
+{
+    backdrop-filter: blur(3px);
+    position: absolute;
+    background-color: rgba(255, 246, 246, 0.8);
+    width: 25vw;
+    height: 15vh;
+    left:37.5vw;
+    top: 42.5vh;
+    border-radius: 0.2cap;
+    text-align: center;
+    z-index:0;
+
+}
+.Window p {
+    font-size: 2.5vh;
+    margin-top: 3vh;
+    margin-bottom: 3vh;
+
+}
+
+.Window button{
+    margin-left: 3vw;
+    margin-right: 3vw;
+    font-size: 2vh;
+    width: 6vw;
+    height: 3vh;
+    text-align: center;
+    border-radius: 0.5cap;
+    border-width: 0.08cap;
+    cursor: pointer;
+    -webkit-box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+    -moz-box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+    box-shadow: 0px 6px 9px -9px rgba(0, 0, 0, 0.75);
+}
+
+.Window button:hover{
+    background-color: rgb(177, 177, 177);
+    transition: background-color 0.1s ease-in-out;
+}

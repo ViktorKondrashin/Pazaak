@@ -1,0 +1,30 @@
+<div id="background">
+    <div >
+        <div id="AvelCard">
+        <p ><strong>Доступные карты</strong></p>
+        </div>
+        <div id="EnterCards">
+        <p ><strong>Наберите боковую колоду</strong></p>
+        </div>
+        <div id="blockofAvelCards">
+
+        </div>
+        <div id="BlockChosenCards">
+        </div>
+        <button (click)="SetOfCards()">Играть</button>
+        <button id="beg" (click)="Return()">Назад</button>
+        <button id="resetCards" (click)="ResetChosenCards()">Сбросить</button>
+        
+    </div>
+</div>
+<div id="ConfirmWindow" class="Window">
+    <p><strong>Вы уверены в набранной боковой колоде?</strong></p>
+    <button (click)="ConfirmWindowOk()">Ок</button>
+    <button (click)="ConfirmWindowCancel()">Отмена</button>
+</div>
+
+<div id="AlertWindow" class="Window">
+    <p><strong>Наберите 10 карт.</strong></p>
+    <button (click)="AlertWindowOk()">Ок</button>
+    
+</div>

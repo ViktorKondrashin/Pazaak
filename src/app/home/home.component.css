@@ -1,0 +1,52 @@
+#mascot{
+    position: absolute;
+    height: 80vh;
+    width: 45vw;
+    left: 8vw;
+    top:10vh;
+    size:100%;
+    opacity: 0.3;
+}
+h1{
+    color: rgb(193, 164, 0);
+    font-size: 14vh;
+    margin-bottom: 1vh;
+    margin-top: 1vh;
+}
+
+
+ol{
+    text-align: center;
+    position: absolute;
+    padding: 0;
+    left: 61.5vw;
+    top: 51vh;
+}
+li{
+    margin-bottom: 3vh;
+}
+a{
+    text-decoration: none;
+    color: rgb(255, 255, 255);
+    font-size: 8vh;
+}
+a:hover{
+    color:rgb(193, 164, 0);
+    transition: color 0.2s ease-in-out;
+}
+
+#title_home{
+   
+    position: absolute;
+    
+    text-align: center;
+    
+    left:56vw;
+    top: 11vh;
+    list-style: none;
+    padding: 0;
+    
+}
+#title_home li{
+    margin-bottom: 1vh;
+}
