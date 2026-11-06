@@ -382,6 +382,7 @@
 }
 .lobby-page .page-header {
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 .lobby-layout {
   flex: 1;
@@ -394,6 +395,7 @@
 }
 .lobby-page .page-footer {
   margin-top: 18px;
+  flex-shrink: 0;
 }
 @media (max-height: 700px) and (min-width: 901px) {
   .invite-panel h2 {
@@ -415,8 +417,13 @@
   }
 }
 @media (max-width: 900px) {
+  .lobby-page {
+    height: auto;
+  }
   .lobby-layout {
     gap: 14px;
+    flex: 1 0 auto;
+    align-items: stretch;
   }
   .lobby-layout > .panel {
     padding: 18px;
@@ -554,6 +561,27 @@
   }
 }
 @media (max-width: 700px) {
+  .campaign-page .page-header,
+  .lobby-page .page-header {
+    gap: 12px;
+  }
+  .lobby-page .page-header {
+    flex-direction: row;
+  }
+  .page-header-actions {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .collection-modal {
+    padding: 24px 18px;
+  }
+  .collection-preview-grid {
+    gap: 12px 10px;
+    margin-top: 18px;
+  }
   .home-page,
   .page {
     padding: 48px 14px 14px;

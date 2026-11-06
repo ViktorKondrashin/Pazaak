@@ -2,23 +2,31 @@ import { Component, effect, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PvpService } from '../pvp.service';
+import { CollectionComponent } from '../shared/collection.component';
 
 @Component({
   selector: 'app-pvp-lobby',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, CollectionComponent],
   template: `
     <main class="page lobby-page">
       <header class="page-header">
         <div>
           <span class="eyebrow">PURE PAZAAK · СЕТЕВАЯ ИГРА</span>
           <h1>Поиск игрока</h1>
+          <p class="muted lobby-collection-hint">
+            Играйте картами из своей коллекции и пополняйте её в одиночном режиме.
+          </p>
         </div>
-        <span
-          class="connection"
-          [class.online]="pvp.connected()"
-          ><i></i>{{ pvp.connected() ? 'В сети' : 'Нет соединения' }}</span
-        >
+        <div class="page-header-actions">
+          <span
+            class="connection"
+            [class.online]="pvp.connected()"
+          >
+            <i></i>{{ pvp.connected() ? 'В сети' : 'Нет соединения' }}
+          </span>
+          <app-collection />
+        </div>
       </header>
       <div class="lobby-layout">
         <section class="panel identity-panel">

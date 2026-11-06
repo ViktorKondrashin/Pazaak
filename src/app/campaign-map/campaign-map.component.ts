@@ -3,23 +3,29 @@ import { Router, RouterLink } from '@angular/router';
 import { CampaignService } from '../campaign.service';
 import { GameService } from '../game.service';
 import { REWARDS } from '../core/catalog';
+import { CollectionComponent } from '../shared/collection.component';
 
 @Component({
   selector: 'app-campaign-map',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, CollectionComponent],
   template: `
     <main class="page campaign-page">
       <header class="page-header">
         <div>
-          <span class="eyebrow">КАМПАНИЯ · {{ campaign.state().completed.length }} / 5</span>
+          <span class="eyebrow">PURE PAZAAK · ОДИНОЧНАЯ ИГРА</span>
           <h1>
             Выбор уровня
             <span class="muted">(бот)</span>
           </h1>
           <p class="muted">Побеждайте, открывайте планеты и пополняйте свою коллекцию.</p>
         </div>
-        <span class="pill">{{ campaign.state().collection.length }} карт</span>
+        <div class="page-header-actions">
+          <app-collection />
+          <span class="eyebrow campaign-progress">
+            КАМПАНИЯ · {{ campaign.state().completed.length }} / 5
+          </span>
+        </div>
       </header>
       <div class="planet-grid">
         @for (planet of campaign.planets; track planet.id) {

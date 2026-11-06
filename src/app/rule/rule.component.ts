@@ -7,16 +7,17 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     <main class="page rules-page">
-      <header class="page-header">
+      <header class="page-header rules-header">
+        <a
+          class="text-button back-link"
+          routerLink="/"
+        >
+          ← Назад
+        </a>
         <div>
           <span class="eyebrow">PURE PAZAAK · СПРАВОЧНИК</span>
           <h1>Правила игры</h1>
         </div>
-        <a
-          class="button subtle"
-          routerLink="/"
-          >← Назад</a
-        >
       </header>
       <section class="rules-intro panel">
         <div class="target-number">20</div>
@@ -129,10 +130,12 @@ import { RouterLink } from '@angular/router';
       </section>
       <footer class="page-footer">
         <a
-          class="button subtle"
+          class="text-button back-link"
           routerLink="/"
-          >← Главное меню</a
-        ><a
+        >
+          ← Главное меню
+        </a>
+        <a
           class="button success"
           routerLink="/campaign"
           >Играть с ботом →</a

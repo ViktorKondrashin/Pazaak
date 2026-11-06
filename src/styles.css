@@ -225,6 +225,64 @@ svg {
 .text-button:disabled {
   opacity: 0.4;
 }
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 4px 0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.rules-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.campaign-page .page-header,
+.lobby-page .page-header {
+  flex-wrap: wrap;
+}
+.campaign-page .page-header > div:first-child,
+.lobby-page .page-header > div:first-child {
+  flex: 1 1 250px;
+  min-width: 0;
+}
+.page-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.campaign-progress {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.lobby-collection-hint {
+  font-size: 13px;
+}
+.collection-trigger {
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  background: #102b45;
+  white-space: nowrap;
+  transition: border-color 0.15s, background 0.15s;
+}
+.collection-trigger:hover {
+  border-color: var(--cyan);
+  background: #193c57;
+}
+.collection-trigger svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.6;
+}
+.collection-trigger-arrow {
+  color: var(--cyan);
+  font-size: 17px;
+  line-height: 1;
+}
 .page-footer {
   display: flex;
   align-items: center;
@@ -1095,6 +1153,85 @@ app-card {
   background: transparent;
   font-size: 30px;
   color: #a0c1d8;
+}
+.collection-modal {
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 28px;
+  color: var(--text);
+  text-align: left;
+  overscroll-behavior: contain;
+}
+.collection-modal::backdrop {
+  background: #020c1dd9;
+  backdrop-filter: blur(7px);
+}
+body:has(.collection-modal[open]) {
+  overflow: hidden;
+}
+.collection-modal .modal-close {
+  top: 8px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  line-height: 1;
+  border-radius: 10px;
+}
+.collection-modal > .eyebrow {
+  display: block;
+  padding-right: 25px;
+  font-size: 10px;
+}
+.collection-modal h2 {
+  margin-top: 6px;
+  font-size: 28px;
+}
+.collection-modal p {
+  font-size: 13px;
+}
+.collection-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+  gap: 16px 12px;
+  margin-top: 24px;
+}
+.collection-preview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.collection-preview-item app-card {
+  height: 104px;
+}
+.collection-preview-item .playing-card {
+  min-height: 0;
+}
+.collection-preview-item .card-value {
+  font-size: 30px;
+}
+.collection-preview-item .card-corner {
+  top: 7px;
+  left: 8px;
+  font-size: 9px;
+}
+.collection-preview-item .card-mark {
+  bottom: 7px;
+  font-size: 6px;
+}
+.collection-copy-count {
+  color: #bdd6ea;
+  font-size: 13px;
+  font-weight: 700;
+}
+.collection-modal .collection-note {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
 }
 .result-score {
   font-size: 72px;
