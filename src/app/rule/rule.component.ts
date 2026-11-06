@@ -8,15 +8,18 @@ import { RouterLink } from '@angular/router';
   template: `
     <main class="page rules-page">
       <header class="page-header rules-header">
-        <a
-          class="text-button back-link"
-          routerLink="/"
-        >
-          ← Назад
-        </a>
+
         <div>
           <span class="eyebrow">PURE PAZAAK · СПРАВОЧНИК</span>
-          <h1>Правила игры</h1>
+          <br>
+          <a
+            class="text-button back-link"
+            routerLink="/"
+          >
+            ← Назад
+          </a>
+          <h1 style="margin: 0px">Правила игры</h1>
+
         </div>
       </header>
       <section class="rules-intro panel">
@@ -130,7 +133,7 @@ import { RouterLink } from '@angular/router';
       </section>
       <footer class="page-footer">
         <a
-          class="text-button back-link"
+          class="button subtle"
           routerLink="/"
         >
           ← Главное меню
