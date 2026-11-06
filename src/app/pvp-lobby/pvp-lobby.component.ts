@@ -1,67 +1,241 @@
-import { Component, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Component, effect, OnDestroy, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PvpService } from '../pvp.service';
 
 @Component({
   selector: 'app-pvp-lobby',
   standalone: true,
-  imports: [CommonModule, RouterLink],
-  templateUrl: './pvp-lobby.component.html',
-  styleUrls: ['./pvp-lobby.component.css']
+  imports: [FormsModule],
+  template: `
+    <main class="page lobby-page">
+      <header class="page-header">
+        <div>
+          <span class="eyebrow">PURE PAZAAK · СЕТЕВАЯ ИГРА</span>
+          <h1>Поиск игрока</h1>
+        </div>
+        <span
+          class="connection"
+          [class.online]="pvp.connected()"
+          ><i></i>{{ pvp.connected() ? 'В сети' : 'Нет соединения' }}</span
+        >
+      </header>
+      <div class="lobby-layout">
+        <section class="panel identity-panel">
+          <span class="eyebrow">ВАШ ID ИГРОКА</span>
+          <div class="public-id">{{ pvp.session()?.publicId ?? '••••••••' }}</div>
+          <p>Передайте этот ID сопернику.<br />Он сможет пригласить вас в матч.</p>
+          <div
+            class="id-decoration"
+            aria-hidden="true"
+          >
+            ✦
+          </div>
+        </section>
+        <section class="panel invite-panel">
+          <span class="eyebrow">ПРИГЛАСИТЬ ДРУГА</span>
+          <h2>Один на один</h2>
+          <p class="muted">Попросите друга открыть сетевую игру и введите его ID.</p>
+          <label for="opponent-id">ID соперника</label
+          ><input
+            id="opponent-id"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="00000000"
+            [(ngModel)]="targetId"
+            [disabled]="pvp.busy() || !!pvp.invitation()"
+            (keydown.enter)="$event.preventDefault()"
+            aria-describedby="lobby-error"
+          />
+          @if (pvp.error()) {
+            <p
+              id="lobby-error"
+              class="error"
+              role="alert"
+            >
+              {{ pvp.error() }}
+            </p>
+          }
+          @if (pvp.notice()) {
+            <p
+              class="notice"
+              role="status"
+            >
+              {{ pvp.notice() }}
+            </p>
+          }
+          <button
+            class="button primary"
+            [disabled]="pvp.busy() || !pvp.connected() || !!pvp.invitation()"
+            (click)="pvp.invite(targetId)"
+          >
+            Отправить приглашение →
+          </button>
+          @if (!pvp.connected()) {
+            <button
+              class="button subtle"
+              [disabled]="connecting"
+              (click)="connect()"
+            >
+              {{ connecting ? 'Подключение…' : 'Повторить подключение' }}
+            </button>
+          }
+        </section>
+      </div>
+      <footer class="page-footer">
+        <button
+          class="button subtle"
+          [disabled]="pvp.busy()"
+          (click)="back()"
+        >
+          ← Назад
+        </button>
+        <p class="muted">
+          ID действует в текущем сеансе. Приглашение можно отменить в любой момент.
+        </p>
+      </footer>
+      @if (pvp.invitation(); as invitation) {
+        <div class="overlay">
+          <section
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+          >
+            @if (invitation.status === 'pending' && invitation.toUid === pvp.session()?.uid) {
+              <button
+                class="modal-close"
+                aria-label="Отклонить и закрыть"
+                [disabled]="pvp.busy()"
+                (click)="pvp.respond('decline')"
+              >
+                ×</button
+              ><span class="eyebrow">ВХОДЯЩЕЕ ПРИГЛАШЕНИЕ</span>
+              <h2>Сыграем в Pazaak?</h2>
+              <p>
+                Игрок <b>{{ pvp.lobby().players[invitation.fromUid].publicId }}</b> приглашает вас в
+                матч.
+              </p>
+              <div class="button-row">
+                <button
+                  class="button success"
+                  [disabled]="pvp.busy() || !pvp.connected()"
+                  (click)="pvp.respond('accept')"
+                >
+                  Принять</button
+                ><button
+                  class="button danger"
+                  [disabled]="pvp.busy() || !pvp.connected()"
+                  (click)="pvp.respond('decline')"
+                >
+                  Отказаться
+                </button>
+              </div>
+            } @else {
+              <span class="eyebrow">ПОИСК ИГРОКА</span>
+              <h2>
+                {{ invitation.status === 'accepted' ? 'Готовим матч…' : 'Приглашение отправлено' }}
+              </h2>
+              <p>
+                Ожидаем
+                {{
+                  invitation.status === 'accepted'
+                    ? 'подключения обоих игроков'
+                    : 'ответа соперника'
+                }}.
+              </p>
+              <div class="waiting-time">{{ elapsed }} с</div>
+              @if (invitation.status === 'pending') {
+                <button
+                  class="button subtle"
+                  [disabled]="pvp.busy() || !pvp.connected()"
+                  (click)="pvp.respond('cancel')"
+                >
+                  Отменить приглашение
+                </button>
+              }
+              @if (invitation.status === 'accepted') {
+                <button
+                  class="button subtle"
+                  [disabled]="pvp.busy() || !pvp.connected()"
+                  (click)="pvp.cancelAccepted()"
+                >
+                  Отменить подготовку
+                </button>
+              }
+            }
+            @if (pvp.error()) {
+              <p
+                class="error"
+                role="alert"
+              >
+                {{ pvp.error() }}
+              </p>
+            }
+            @if (!pvp.connected()) {
+              <button
+                class="text-button"
+                (click)="back()"
+              >
+                Вернуться в меню
+              </button>
+            }
+          </section>
+        </div>
+      }
+    </main>
+  `,
 })
-export class PvpLobbyComponent implements OnDestroy {
-  roomId: string = '';
-  private unsubscribe: any;
+export class PvpLobbyComponent implements OnInit, OnDestroy {
+  targetId = '';
+  elapsed = 0;
+  connecting = false;
+  private enteringRoom = false;
+  private timer?: ReturnType<typeof setInterval>;
 
-  constructor(private pvp: PvpService, private router: Router) {}
+  constructor(
+    readonly pvp: PvpService,
+    private router: Router,
+  ) {
+    effect(() => {
+      const room = this.pvp.room();
+      if (room) {
+        this.enteringRoom = true;
+        void this.router.navigate(['/pvp-game', room.id]);
+      }
+    });
+  }
 
-  async createGame() {
-    console.log('=== createGame нажат ===');
+  ngOnInit(): void {
+    void this.connect();
+    this.timer = setInterval(() => {
+      this.elapsed = Math.max(
+        0,
+        Math.floor((this.pvp.now - (this.pvp.invitation()?.createdAt ?? this.pvp.now)) / 1000),
+      );
+    }, 500);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
+
+  async connect(): Promise<void> {
+    this.connecting = true;
     try {
-      this.roomId = await this.pvp.createRoom();
-      console.log('Комната создана, ID =', this.roomId);
-      // Фиксируем роль player1 для создателя
-      localStorage.setItem(`pvp_role_${this.roomId}`, 'player1');
-      this.unsubscribe = this.pvp.listenRoom(this.roomId, (data) => {
-        console.log('Создатель: получены данные комнаты:', data);
-        if (data?.status === 'playing' && data?.players?.player2) {
-          console.log('Второй игрок подключился, создатель переходит в игру');
-          this.router.navigate(['/pvp-game', this.roomId]);
-        }
-      });
-    } catch (err) {
-      console.error('Ошибка createGame:', err);
-      alert('Не удалось создать комнату');
+      await this.pvp.connect();
+    } catch {
+      /* The service provides the message. */
+    } finally {
+      this.connecting = false;
     }
   }
 
-  async joinGame(roomId: string) {
-    console.log('=== joinGame, roomId =', roomId);
-    if (!roomId) return;
-    const success = await this.pvp.joinRoom(roomId);
-    console.log('Результат joinRoom:', success);
-    if (success) {
-      console.log('Успешно присоединились, второй игрок переходит в игру');
-      // Фиксируем роль player2 для присоединившегося
-      localStorage.setItem(`pvp_role_${roomId}`, 'player2');
-      // Гарантированный переход через перезагрузку
-      window.location.href = `/pvp-game/${roomId}`;
-    } else {
-      alert('Комната не найдена или уже занята');
-    }
+  back(): void {
+    void this.router.navigate(['/']);
   }
 
-  getInviteLink() {
-    return `${window.location.origin}/pvp-lobby?join=${this.roomId}`;
-  }
-
-  copyLink() {
-    navigator.clipboard.writeText(this.getInviteLink());
-    alert('Ссылка скопирована');
-  }
-
-  ngOnDestroy() {
-    if (this.unsubscribe) this.unsubscribe();
+  canLeave(): boolean | Promise<boolean> {
+    return this.enteringRoom || this.pvp.leaveLobby();
   }
 }

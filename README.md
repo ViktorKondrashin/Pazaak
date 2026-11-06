@@ -1,27 +1,51 @@
-# Lab2
+# Pure Pazaak 5.1.0
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.5.
+Карточная игра: кампания из пяти планет и приглашения по восьмизначному ID.
+Angular 18 отображает интерфейс и ведёт кампанию в браузере. Node.js 24 ведёт сетевые матчи, а SQLite хранит их временное состояние на том же VPS.
+Nginx обслуживает сайт и передаёт /api серверу. Docker не требуется.
 
-## Development server
+## Готовая сборка
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Установите Node.js 24 LTS. Откройте терминал в папке проекта:
 
-## Code scaffolding
+```bash
+npm start
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Откройте http://127.0.0.1:3000. Для Windows есть Start-Pazaak.cmd.
+Архив содержит dist/pazaak/browser и dist/server/core; npm-зависимости для запуска готовой сборки не нужны.
+Кампания и бот работают во вкладке после загрузки сайта. Сервер нужен для сетевой игры.
 
-## Build
+## Разработка
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```bash
+npm ci
+npm run build
+npm test
+npm run pack
+```
 
-## Running unit tests
+Для разработки интерфейса: запустите npm start и npm run dev в двух терминалах.
+Dev-сервер на 4200 использует proxy.conf.json для /api на 3000.
+После изменения правил пересоберите build:server и перезапустите Node.js.
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## VPS
 
-## Running end-to-end tests
+Пошаговая инструкция с объяснениями: [docs/VPS_DEPLOY.md](docs/VPS_DEPLOY.md).
+Конфигурации: deploy/nginx.conf и deploy/pazaak.service.
+Служба слушает 127.0.0.1:3000; Nginx — 80/443. SQLite: /var/lib/pazaak/pazaak.sqlite.
+При ручном запуске БД создаётся в data/pazaak.sqlite. Переменные: HOST, PORT, DATABASE_PATH.
+Health check: GET /api/health. Запускайте один экземпляр серверного процесса.
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Сессии
 
-## Further help
+Постоянного сохранения нет. Cookies, localStorage и sessionStorage не используются.
+Токен находится в памяти страницы; новый запуск страницы сбрасывает кампанию, выбор карт и ID.
+Коллекция и награды остаются во вкладке. Сервер принимает ID двух сетевых колод и скрывает чужую руку.
+Состояние обновляется HTTP-опросом примерно каждые 750 мс. По тайм-ауту связи 45 секунд матч прерывается без победителя.
+Перезапуск процесса сбрасывает временные сетевые сессии и партии.
+Сборка проверена на Node.js 24.13.1. Предупреждение ExperimentalWarning от встроенного SQLite в этой версии не мешает запуску.
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Правила и архитектура: docs/ALGORITHMS.md, docs/ARCHITECTURE.md, docs/ADDITIONAL_REQUIREMENTS.md.
+
+Файлы и игровые сценарии описаны в [путеводителе по проекту](docs/DEVELOPER_GUIDE.md).

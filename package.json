@@ -1,14 +1,16 @@
 {
-  "name": "lab5",
-  "version": "0.0.0",
+  "name": "pure-pazaak",
+  "version": "5.1.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "node server/index.cjs",
+    "serve": "node scripts/serve.mjs",
+    "dev": "ng serve --host 127.0.0.1 --proxy-config proxy.conf.json",
+    "build": "ng build && npm run build:server",
+    "build:server": "node scripts/build-server.cjs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "server": "json-server --watch db.json --port 3000",
-    "dev": "concurrently --kill-others \"npm run start\" \"npm run server\""
+    "pack": "node scripts/package.mjs",
+    "test": "npm run build:server && node --test scripts/core.test.cjs scripts/server.test.cjs"
   },
   "private": true,
   "dependencies": {
@@ -20,7 +22,6 @@
     "@angular/platform-browser": "^18.2.0",
     "@angular/platform-browser-dynamic": "^18.2.0",
     "@angular/router": "^18.2.0",
-    "firebase": "^12.12.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.10"
@@ -29,13 +30,10 @@
     "@angular-devkit/build-angular": "^18.2.5",
     "@angular/cli": "^18.2.5",
     "@angular/compiler-cli": "^18.2.0",
-    "@types/jasmine": "~5.1.0",
-    "jasmine-core": "~5.2.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
     "typescript": "~5.5.2"
+  },
+  "description": "Pazaak: Angular client, authoritative Node.js game server and SQLite on one VPS",
+  "engines": {
+    "node": ">=24.13.1 <25"
   }
 }

@@ -1,42 +1,45 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-# Compiled output
-/dist
-/tmp
-/out-tsc
-/bazel-out
+# Установленные зависимости
+node_modules/
 
-# Node
-/node_modules
-npm-debug.log
-yarn-error.log
+# Результаты сборки и кэши
+dist/
+.angular/
+coverage/
+*.tsbuildinfo
 
-# IDEs and editors
+# Настройки IDE
 .idea/
-.project
-.classpath
-.c9/
-*.launch
-.settings/
-*.sublime-workspace
+.vscode/
 
-# Visual Studio Code
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-.history/*
+# Локальная конфигурация и секреты
+.env
+.env.*
+!.env.example
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
+# Локальные базы данных
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
 
-# System files
-.DS_Store
-Thumbs.db
+# Логи
+*.log
+npm-debug.log*
+
+# Временные файлы
+*.tmp
+*.bak
+
+# Личные материалы для ИИ
+prompts/
+.ai-notes/
+.ai/
+AGENTS.md
+CLAUDE.md
+GEMINI.md

@@ -1,112 +1,127 @@
-import { Injectable } from '@angular/core';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, push, onValue, update, remove, onDisconnect, get } from 'firebase/database';
-import { environment } from '../environments/environment';
+import { computed, Injectable, signal } from '@angular/core';
+import { ApiService } from './api.service';
+import { commandFor } from './core/game-engine';
+import { Action, GameError } from './core/models';
+import { emptyLobby } from './core/lobby';
 
 @Injectable({ providedIn: 'root' })
 export class PvpService {
-  private db;
+  readonly session = computed(() => this.api.state()?.session ?? null);
+  readonly lobby = computed(() => this.api.state()?.lobby ?? emptyLobby());
+  readonly room = computed(() => this.api.state()?.room ?? null);
+  readonly connected = computed(() => this.api.connected());
+  readonly busy = signal(false);
+  readonly error = signal('');
+  readonly notice = computed(() => this.api.state()?.notice ?? '');
 
-  constructor() {
-    const app = initializeApp(environment.firebaseConfig);
-    this.db = getDatabase(app);
-    console.log('Firebase инициализирован');
+  constructor(private readonly api: ApiService) {}
+
+  get now(): number {
+    return this.api.now;
   }
 
-  async createRoom(): Promise<string> {
-    console.log('createRoom: создаю комнату...');
-    const roomRef = push(ref(this.db, 'rooms'));
-    const roomId = roomRef.key!;
-    const roomData = {
-      players: {
-        player1: {
-          id: this.generateId(),
-          sum: 0,
-          wins: 0,
-          isStand: false
-        }
-      },
-      currentTurn: 'player1',
-      status: 'waiting', // waiting, playing, finished
-      winner: null,
-      createdAt: Date.now()
-    };
-    try {
-      await set(roomRef, roomData);
-      console.log('Комната создана, ID =', roomId);
-      onDisconnect(roomRef).remove();
-      return roomId;
-    } catch (err) {
-      console.error('Ошибка создания комнаты:', err);
-      throw err;
+  invitation() {
+    const id = this.session()?.invitationId;
+    return id ? (this.lobby().invitations[id] ?? null) : null;
+  }
+
+  async connect(): Promise<void> {
+    await this.perform(() => this.api.post('lobby/connect'));
+  }
+
+  async invite(publicId: string): Promise<void> {
+    if (!/^[0-9]{8}$/.test(publicId)) {
+      this.error.set('Неправильный формат ID');
+      return;
     }
+    await this.perform(() => this.api.post('lobby/invite', { publicId }));
   }
 
-  async joinRoom(roomId: string): Promise<boolean> {
-    console.log('joinRoom: пробую комнату', roomId);
-    const roomRef = ref(this.db, `rooms/${roomId}`);
-    try {
-      const snapshot = await get(roomRef);
-      if (!snapshot.exists()) {
-        console.log('Комната не существует');
-        return false;
+  async respond(response: 'accept' | 'decline' | 'cancel'): Promise<void> {
+    const invitationId = this.invitation()?.id;
+    if (invitationId)
+      await this.perform(() => this.api.post('lobby/respond', { invitationId, response }));
+  }
+
+  async ready(ids: string[]): Promise<void> {
+    await this.perform(() => this.api.post('room/ready', { roomId: this.room()?.id, ids }));
+  }
+
+  async sendFallback(roomId: string, ids: string[]): Promise<void> {
+    await this.perform(() => this.api.post('room/fallback', { roomId, ids }));
+  }
+
+  async act(action: Action): Promise<void> {
+    const match = this.room()?.match,
+      uid = this.session()?.uid;
+    if (!match || !uid) return;
+    const command = commandFor(match, uid, action);
+    await this.perform(async () => {
+      try {
+        await this.api.post('room/command', { roomId: command.roomId, command });
+      } catch (error) {
+        const latest = this.room()?.match;
+        if (
+          !(error instanceof GameError) ||
+          error.code !== 'VERSION' ||
+          action.type !== 'ack' ||
+          latest?.phase !== 'setResult' ||
+          latest.setNumber !== command.setNumber
+        )
+          throw error;
+        if (!latest.acknowledgements.includes(uid))
+          await this.api.post('room/command', {
+            roomId: command.roomId,
+            command: { ...command, expectedVersion: latest.version },
+          });
       }
-      const room = snapshot.val();
-      console.log('Текущие данные комнаты:', room);
-      if (room.status !== 'waiting') {
-        console.log('Комната не в статусе waiting');
-        return false;
-      }
-      if (room.players.player2) {
-        console.log('В комнате уже есть player2');
-        return false;
-      }
-      await update(roomRef, {
-        'players/player2': {
-          id: this.generateId(),
-          sum: 0,
-          wins: 0,
-          isStand: false
-        },
-        status: 'playing'
-      });
-      console.log('Успешно присоединился к', roomId);
+    });
+  }
+
+  async cancelPreparation(): Promise<boolean> {
+    const ok = await this.perform(() => this.api.post('room/cancel', { roomId: this.room()?.id }));
+    return ok ? this.finishViewing() : false;
+  }
+
+  async cancelAccepted(): Promise<void> {
+    await this.perform(() => this.api.post('room/cancel', { roomId: this.room()?.id }));
+  }
+
+  async finishViewing(): Promise<boolean> {
+    if (!this.room()) return true;
+    return this.perform(() => this.api.post('room/finish', { roomId: this.room()?.id }));
+  }
+
+  async leaveLobby(): Promise<boolean> {
+    if (!this.connected()) {
+      await this.abandonOffline();
       return true;
-    } catch (err) {
-      console.error('Ошибка joinRoom:', err);
-      return false;
     }
+    const invitation = this.invitation();
+    if (invitation?.status === 'pending')
+      await this.respond(invitation.fromUid === this.session()?.uid ? 'cancel' : 'decline');
+    if (this.invitation()?.status === 'pending' || this.room()) return false;
+    const left = await this.perform(() => this.api.post('lobby/leave'));
+    if (left) this.api.closeSession();
+    return left;
   }
 
-  listenRoom(roomId: string, callback: (data: any) => void) {
-    const roomRef = ref(this.db, `rooms/${roomId}`);
-    return onValue(roomRef, (snapshot) => callback(snapshot.val()));
+  async abandonOffline(): Promise<void> {
+    this.api.closeSession();
   }
 
-  async updatePlayer(roomId: string, player: 'player1' | 'player2', data: any) {
-    await update(ref(this.db, `rooms/${roomId}/players/${player}`), data);
-  }
-
-  async setTurn(roomId: string, turn: 'player1' | 'player2') {
-    await update(ref(this.db, `rooms/${roomId}`), { currentTurn: turn });
-  }
-
-  async finishGame(roomId: string, winner: 'player1' | 'player2') {
-    await update(ref(this.db, `rooms/${roomId}`), { status: 'finished', winner });
-  }
-
-  async deleteRoom(roomId: string) {
-    await remove(ref(this.db, `rooms/${roomId}`));
-  }
-
-  // ДОБАВЬТЕ ЭТОТ МЕТОД
-  async getRoom(roomId: string): Promise<any> {
-    const roomRef = ref(this.db, `rooms/${roomId}`);
-    const snapshot = await get(roomRef);
-    return snapshot.val();
-  }
-
-  private generateId(): string {
-    return Math.random().toString(36).substring(2, 9);
+  private async perform(work: () => Promise<void>): Promise<boolean> {
+    if (this.busy()) return false;
+    this.busy.set(true);
+    this.error.set('');
+    try {
+      await work();
+      return true;
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Ошибка соединения');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
   }
 }

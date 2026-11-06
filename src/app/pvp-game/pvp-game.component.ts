@@ -1,198 +1,223 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Component, effect, OnDestroy, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { PvpService } from '../pvp.service';
+import { CampaignService } from '../campaign.service';
+import { Action } from '../core/models';
+import { RULES } from '../core/game-engine';
+import { freshSeed, shuffled } from '../core/random';
+import { GameBoardComponent } from '../game-board/game-board.component';
+import { DeckBuilderComponent } from '../shared/deck-builder.component';
+import { ConfirmComponent } from '../shared/confirm.component';
 
 @Component({
   selector: 'app-pvp-game',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [GameBoardComponent, DeckBuilderComponent, ConfirmComponent],
   template: `
-    <div style="background:#1a472a; min-height:100vh; color:white; padding:20px; text-align:center">
-      <h2>PvP Матч</h2>
-      <div style="display:flex; justify-content:center; gap:40px; flex-wrap:wrap">
-        <div style="background:#00000080; padding:20px; border-radius:24px; min-width:200px">
-          <h3>Вы</h3>
-          <div>Сумма: <strong>{{ mySum }}</strong> {{ mySum>20? '🔥':'' }}</div>
-          <div>Победы: {{ myWins }}</div>
-          <div *ngIf="myStand">🛑 Стоп</div>
-        </div>
-        <div style="background:#00000080; padding:20px; border-radius:24px; min-width:200px">
-          <h3>Противник</h3>
-          <div>Сумма: <strong>{{ oppSum }}</strong></div>
-          <div>Победы: {{ oppWins }}</div>
-          <div *ngIf="oppStand">🛑 Стоп</div>
-        </div>
-      </div>
-      <div class="turn-indicator" *ngIf="!finished">
-        <p *ngIf="myTurn && !myStand" style="font-size:24px">⭐ Ваш ход! ⭐</p>
-        <p *ngIf="!myTurn && !finished && !oppStand" style="font-size:24px">⏳ Ход противника...</p>
-        <p *ngIf="myStand && !oppStand && !finished" style="font-size:24px">✅ Вы остановились. Ждём противника.</p>
-        <p *ngIf="oppStand && !myStand && !finished" style="font-size:24px">✅ Противник остановился. Ваш ход.</p>
-      </div>
-      <div class="actions" *ngIf="!finished">
-        <button *ngIf="myTurn && !myStand" (click)="addRandomCard()" style="margin:5px; padding:10px">🎴 Взять карту</button>
-        <button *ngIf="myTurn && !myStand" (click)="stand()" style="margin:5px; padding:10px">🛑 Стоп</button>
-        <button (click)="surrender()" style="margin-top:20px; background:#8b3c3c">🏳️ Сдаться</button>
-      </div>
-      <div *ngIf="finished">
-        <h2>{{ resultText }}</h2>
-        <button routerLink="/">🏠 Главное меню</button>
-      </div>
-    </div>
+    @if (pvp.room(); as room) {
+      @if (room.phase === 'preparing') {
+        @if (room.t0 === null) {
+          <main class="page">
+            <section class="panel">
+              <h1>Подключение игроков…</h1>
+              <p>Ожидаем готовности к выбору карт.</p>
+              @if (!pvp.connected()) {
+                <p class="error">Нет соединения</p>
+              }
+              @if (pvp.error()) {
+                <p class="error">{{ pvp.error() }}</p>
+              }
+              @if (!room.fallbackSubmitted && pvp.connected() && pvp.error()) {
+                <button
+                  class="button"
+                  [disabled]="pvp.busy()"
+                  (click)="sendFallback(room.id)"
+                >
+                  Повторить
+                </button>
+              }
+              <button
+                class="button subtle"
+                [disabled]="pvp.busy()"
+                (click)="back()"
+              >
+                Отменить
+              </button>
+            </section>
+          </main>
+        } @else {
+          <app-deck-builder
+            [collection]="campaign.state().collection"
+            [selected]="selected"
+            [seconds]="seconds"
+            [locked]="pvp.busy() || !pvp.connected() || !!room.ready[uid]"
+            [waiting]="!!room.ready[uid]"
+            modeLabel="СЕТЕВОЙ МАТЧ"
+            [error]="
+              pvp.error() || (!pvp.connected() ? 'Нет соединения. Действия заблокированы.' : '')
+            "
+            (selectionChange)="select($event)"
+            (start)="pvp.ready(selected)"
+            (back)="back()"
+          />
+        }
+      } @else if (room.phase === 'closed') {
+        <main class="page">
+          <div class="overlay">
+            <section
+              class="modal"
+              role="dialog"
+              aria-modal="true"
+            >
+              <span class="eyebrow">ПОДГОТОВКА ЗАВЕРШЕНА</span>
+              <h2>{{ room.closedReason === 'disconnect' ? 'Игрок вышел' : 'Матч отменён' }}</h2>
+              <p>Победитель не назначен.</p>
+              <button
+                class="button primary"
+                [disabled]="pvp.busy() || !pvp.connected()"
+                (click)="complete()"
+              >
+                ОК
+              </button>
+              @if (pvp.error()) {
+                <p class="error">{{ pvp.error() }}</p>
+              }
+            </section>
+          </div>
+        </main>
+      } @else if (room.match) {
+        <app-game-board
+          [match]="room.match"
+          [uid]="uid"
+          [connected]="pvp.connected()"
+          [busy]="pvp.busy()"
+          [error]="pvp.error()"
+          (action)="act($event)"
+          (complete)="complete()"
+          (offlineExit)="offlineExit()"
+        />
+      }
+    }
+    @if (confirming) {
+      <app-confirm
+        [message]="
+          pvp.room()?.phase === 'preparing'
+            ? 'Подготовка будет отменена для обоих участников.'
+            : 'Вы покинете матч. Победа будет засчитана сопернику.'
+        "
+        (accepted)="resolveLeave(true)"
+        (cancelled)="resolveLeave(false)"
+      />
+    }
   `,
-  styles: []
 })
 export class PvpGameComponent implements OnInit, OnDestroy {
-  roomId = '';
-  myRole: 'player1' | 'player2' = 'player1';
-  mySum = 0;
-  oppSum = 0;
-  myWins = 0;
-  oppWins = 0;
-  myStand = false;
-  oppStand = false;
-  myTurn = false;
-  finished = false;
-  resultText = '';
-  private unsubscribe: any;
+  selected: string[] = [];
+  seconds = 60;
+  confirming = false;
+  private timer?: ReturnType<typeof setInterval>;
+  private leaveResolver?: (allowed: boolean) => void;
+  private fallback?: string[];
 
   constructor(
-    private route: ActivatedRoute,
-    private pvp: PvpService,
-    private router: Router
-  ) {}
+    readonly pvp: PvpService,
+    readonly campaign: CampaignService,
+    private router: Router,
+  ) {
+    effect(
+      () => {
+        const room = this.pvp.room();
+        if (
+          room?.phase !== 'preparing' ||
+          room.fallbackSubmitted ||
+          !this.pvp.connected() ||
+          this.pvp.busy() ||
+          this.fallback
+        )
+          return;
+        void this.sendFallback(room.id);
+      },
+      { allowSignalWrites: true },
+    );
+  }
 
-  async ngOnInit() {
-    this.roomId = this.route.snapshot.paramMap.get('id')!;
-    console.log('=== PvP Game init, roomId =', this.roomId);
-    this.initRole();
-    this.unsubscribe = this.pvp.listenRoom(this.roomId, (data) => {
-      if (data) this.syncState(data);
+  async sendFallback(roomId: string): Promise<void> {
+    this.fallback ??= shuffled(this.campaign.state().collection, { rngState: freshSeed() })
+      .slice(0, RULES.sideDeck)
+      .map((card) => card.instanceId);
+    await this.pvp.sendFallback(roomId, this.fallback);
+  }
+
+  get uid(): string {
+    return this.pvp.session()?.uid ?? '';
+  }
+
+  ngOnInit(): void {
+    this.selected = [...this.campaign.selectedCards()];
+    this.tick();
+    this.timer = setInterval(() => this.tick(), 250);
+  }
+
+  ngOnDestroy(): void {
+    clearInterval(this.timer);
+  }
+
+  private tick(): void {
+    const t0 = this.pvp.room()?.t0;
+    this.seconds =
+      t0 == null ? 60 : Math.max(0, Math.ceil((t0 + RULES.preparationMs - this.pvp.now) / 1000));
+  }
+
+  select(ids: string[]): void {
+    this.selected = ids;
+    this.campaign.selectCards(ids);
+  }
+
+  async act(action: Action): Promise<void> {
+    await this.pvp.act(action);
+    if (action.type === 'exit' && this.pvp.room()?.match?.phase === 'finished')
+      await this.complete();
+  }
+
+  async complete(): Promise<void> {
+    if (await this.pvp.finishViewing()) await this.router.navigate(['/pvp-lobby']);
+  }
+
+  async offlineExit(): Promise<void> {
+    await this.pvp.abandonOffline();
+    await this.router.navigate(['/']);
+  }
+
+  back(): void {
+    void this.router.navigate(['/pvp-lobby']);
+  }
+
+  canLeave(): boolean | Promise<boolean> {
+    const room = this.pvp.room();
+    if (!room) return true;
+    if (!this.pvp.connected()) return this.pvp.abandonOffline().then(() => true);
+    if (
+      room.phase === 'closed' ||
+      room.match?.phase === 'finished' ||
+      room.match?.phase === 'interrupted'
+    )
+      return this.pvp.finishViewing();
+    this.confirming = true;
+    return new Promise((resolve) => {
+      this.leaveResolver = resolve;
     });
   }
 
-  private initRole() {
-    const saved = localStorage.getItem(`pvp_role_${this.roomId}`);
-    console.log('Роль из localStorage:', saved);
-    this.myRole = (saved === 'player1' || saved === 'player2') ? saved : 'player1';
-    console.log('Моя роль:', this.myRole);
-  }
-
-  private async syncState(data: any) {
-    if (!data) return;
-    const p1 = data.players?.player1;
-    const p2 = data.players?.player2;
-    if (this.myRole === 'player1') {
-      this.mySum = p1?.sum ?? 0;
-      this.myWins = p1?.wins ?? 0;
-      this.myStand = p1?.isStand ?? false;
-      this.oppSum = p2?.sum ?? 0;
-      this.oppWins = p2?.wins ?? 0;
-      this.oppStand = p2?.isStand ?? false;
-    } else {
-      this.mySum = p2?.sum ?? 0;
-      this.myWins = p2?.wins ?? 0;
-      this.myStand = p2?.isStand ?? false;
-      this.oppSum = p1?.sum ?? 0;
-      this.oppWins = p1?.wins ?? 0;
-      this.oppStand = p1?.isStand ?? false;
-    }
-    this.myTurn = (data.currentTurn === this.myRole);
-    console.log('syncState: myTurn =', this.myTurn, 'myStand =', this.myStand, 'oppStand =', this.oppStand);
-
-    // Если оба игрока остановились – завершаем раунд
-    if ((this.myStand && this.oppStand) && data.status === 'playing' && !this.finished) {
-      console.log('Оба остановились -> определяем победителя раунда');
-      await this.determineRoundWinner();
-    }
-
-    if (data.status === 'finished' && !this.finished) {
-      this.finished = true;
-      this.resultText = data.winner === this.myRole ? '🏆 ПОБЕДА!' : '💀 ПОРАЖЕНИЕ...';
-    }
-  }
-
-  private async determineRoundWinner() {
-    const myVal = this.mySum <= 20 ? this.mySum : -1;
-    const oppVal = this.oppSum <= 20 ? this.oppSum : -1;
-    let winner: 'player1' | 'player2' | null = null;
-    if (myVal > oppVal) winner = this.myRole;
-    else if (oppVal > myVal) winner = this.myRole === 'player1' ? 'player2' : 'player1';
-    // ничья – winner = null
-
-    const room = await this.pvp.getRoom(this.roomId);
-    if (winner === null) {
-      // Ничья – сброс раунда без изменения очков
-      await this.pvp.updatePlayer(this.roomId, 'player1', { sum: 0, isStand: false });
-      await this.pvp.updatePlayer(this.roomId, 'player2', { sum: 0, isStand: false });
-      await this.pvp.setTurn(this.roomId, 'player1');
-    } else {
-      const currentWins = winner === 'player1' ? (room.players.player1.wins || 0) : (room.players.player2.wins || 0);
-      const newWins = currentWins + 1;
-      if (newWins >= 3) {
-        await this.pvp.finishGame(this.roomId, winner);
-      } else {
-        await this.pvp.updatePlayer(this.roomId, winner, { sum: 0, isStand: false, wins: newWins });
-        const loser = winner === 'player1' ? 'player2' : 'player1';
-        await this.pvp.updatePlayer(this.roomId, loser, { sum: 0, isStand: false });
-        await this.pvp.setTurn(this.roomId, 'player1');
+  async resolveLeave(allowed: boolean): Promise<void> {
+    this.confirming = false;
+    if (allowed) {
+      if (this.pvp.room()?.phase === 'preparing') allowed = await this.pvp.cancelPreparation();
+      else {
+        await this.pvp.act({ type: 'exit' });
+        allowed = this.pvp.room()?.match?.phase === 'finished' && (await this.pvp.finishViewing());
       }
     }
-  }
-
-  async addRandomCard() {
-    if (this.finished || this.myStand || !this.myTurn) return;
-    const card = Math.floor(Math.random() * 10) + 1;
-    let newSum = this.mySum + card;
-    if (newSum > 20) newSum = 22;
-    await this.pvp.updatePlayer(this.roomId, this.myRole, { sum: newSum });
-
-    if (newSum > 20) {
-      // автоматический стоп при переборе
-      await this.stand();
-    } else {
-      // после взятия карты ход переходит к другому игроку (если он ещё не остановился)
-      const next = this.myRole === 'player1' ? 'player2' : 'player1';
-      const room = await this.pvp.getRoom(this.roomId);
-      const nextStand = next === 'player1' ? room.players.player1.isStand : room.players.player2.isStand;
-      if (!nextStand) {
-        await this.pvp.setTurn(this.roomId, next);
-      } else {
-        // другой уже в стопе – значит, оба стоят (текущий ещё не в стопе, но сейчас он не в стопе, потому что мы только что взяли карту и не нажали стоп)
-        // Однако после нашего хода, если другой уже в стопе, мы должны завершить раунд? Нет, потому что текущий игрок ещё не остановился. Ему нужно дать возможность остановиться.
-        // Поэтому ход остаётся у текущего игрока. Он может дальше брать карты или нажать Стоп.
-        // Таким образом, в этом случае ход не переключаем – пусть текущий продолжает.
-        console.log('Другой игрок уже в стопе, ход остаётся у текущего');
-      }
-    }
-  }
-
-  async stand() {
-    if (this.finished || this.myStand || !this.myTurn) return;
-    await this.pvp.updatePlayer(this.roomId, this.myRole, { isStand: true });
-
-    // После стопа ход переходит к другому, если он ещё не в стопе
-    const next = this.myRole === 'player1' ? 'player2' : 'player1';
-    const room = await this.pvp.getRoom(this.roomId);
-    const nextStand = next === 'player1' ? room.players.player1.isStand : room.players.player2.isStand;
-    if (!nextStand) {
-      await this.pvp.setTurn(this.roomId, next);
-    } else {
-      // Если другой уже в стопе, то оба стоят – раунд завершится в syncState
-      console.log('Оба игрока в стопе, раунд будет завершён');
-      // Принудительно вызовем проверку обоих стопов, но syncState сам сработает по обновлению данных
-    }
-  }
-
-  surrender() {
-    if (confirm('Сдаться?')) {
-      const winner = this.myRole === 'player1' ? 'player2' : 'player1';
-      this.pvp.finishGame(this.roomId, winner);
-    }
-  }
-
-  ngOnDestroy() {
-    if (this.unsubscribe) this.unsubscribe();
+    this.leaveResolver?.(allowed);
+    this.leaveResolver = undefined;
   }
 }

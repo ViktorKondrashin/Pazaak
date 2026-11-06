@@ -1,0 +1,298 @@
+<main class="page board-page">
+  <header class="board-top">
+    <span class="brand-small">PURE <b>PAZAAK</b></span
+    ><span class="eyebrow"
+      >{{ match.mode === 'campaign' ? 'КАМПАНИЯ · ПЛАНЕТА ' + match.planetId : 'СЕТЕВОЙ МАТЧ' }} ·
+      СЕТ {{ match.setNumber }}</span
+    ><button
+      class="text-button"
+      [disabled]="busy || !connected"
+      (click)="decision = 'exit'"
+    >
+      Выйти из игры ↗
+    </button>
+  </header>
+  @if (!connected) {
+    <div
+      class="error"
+      role="alert"
+    >
+      Соединение потеряно. Игровые действия заблокированы.
+      <button
+        class="text-button"
+        (click)="offlineExit.emit()"
+      >
+        Вернуться в меню
+      </button>
+    </div>
+  }
+  @if (error) {
+    <p
+      class="error"
+      role="alert"
+    >
+      {{ error }}
+    </p>
+  }
+  <div class="game-layout">
+    <section
+      class="player-zone"
+      [class.active-zone]="match.currentPlayer === uid && match.phase === 'playing'"
+    >
+      <header class="player-heading">
+        <div>
+          <span class="eyebrow">{{
+            self.stopped
+              ? 'НАБОР ЗАВЕРШЁН'
+              : match.currentPlayer === uid
+                ? 'ВАШ ХОД'
+                : 'ОЖИДАНИЕ ХОДА'
+          }}</span>
+          <h1>Игрок</h1>
+          <div class="stop-status">
+            @if (self.stopped) {
+              <span
+                class="stop-badge"
+                role="status"
+                ><span aria-hidden="true">✓</span> СТОП</span
+              >
+            }
+          </div>
+        </div>
+        <div
+          class="win-dots"
+          aria-label="Победы игрока"
+        >
+          @for (win of wins; track win) {
+            <span [class.won]="self.wins > win"></span>
+          }
+        </div>
+      </header>
+      <div class="board-grid">
+        @for (card of self.board; track match.setNumber + ':' + card.instanceId) {
+          <div class="board-slot">
+            <app-card
+              [card]="card"
+              [signedValue]="card.signedValue"
+            />
+          </div>
+        }
+        @for (slot of slots.slice(self.board.length); track slot) {
+          <div class="board-slot">
+            <span class="slot-number">{{ slot + 1 }}</span>
+          </div>
+        }
+      </div>
+      <div class="hand-label">
+        <span>ВАША РУКА</span><span>{{ self.hand.length }} / 4</span>
+      </div>
+      <div class="hand">
+        @for (card of sortedHand; track match.setNumber + ':' + card.instanceId) {
+          <app-card
+            [card]="card"
+            [interactive]="true"
+            [disabled]="!canPlayCard"
+            (choose)="play(card, $event)"
+          />
+        }
+        @if (!self.hand.length) {
+          <p class="muted">Карты руки использованы</p>
+        }
+      </div>
+    </section>
+    <section class="match-control">
+      <div
+        class="turn-label"
+        [class.your-turn]="canAct"
+        aria-live="polite"
+      >
+        <span class="status-dot"></span>{{ turnLabel }}
+      </div>
+      <div class="score-pair">
+        <strong [class.bust]="self.score > 20">{{ self.score }}</strong
+        ><span>:</span><strong [class.bust]="opponent.score > 20">{{ opponent.score }}</strong>
+      </div>
+      <span class="eyebrow">ЦЕЛЬ — 20 ОЧКОВ</span>
+      <div class="match-tally">
+        <b>{{ self.wins }}</b
+        ><span>СЕТЫ</span><b>{{ opponent.wins }}</b>
+      </div>
+      <p class="deck-remaining">
+        В главной колоде<br /><strong>{{ match.mainDeckCount - match.deckIndex }}</strong> карт
+      </p>
+      <div class="game-actions">
+        <button
+          #endTurnButton
+          class="button primary"
+          [disabled]="!canAct"
+          (click)="action.emit({ type: 'pass' })"
+        >
+          Завершить ход</button
+        ><button
+          class="button"
+          [disabled]="!canAct"
+          (click)="action.emit({ type: 'stop' })"
+        >
+          Стоп</button
+        ><button
+          class="button danger"
+          [disabled]="busy || !connected || match.phase !== 'playing'"
+          (click)="decision = 'surrender'"
+        >
+          Сдаться
+        </button>
+      </div>
+      <p
+        class="control-help"
+        aria-live="polite"
+      >
+        {{ controlHelp }}
+      </p>
+    </section>
+    <section
+      class="player-zone opponent-zone"
+      [class.active-zone]="match.currentPlayer !== uid && match.phase === 'playing'"
+    >
+      <header class="player-heading">
+        <div>
+          <span class="eyebrow">{{
+            opponent.stopped
+              ? 'НАБОР ЗАВЕРШЁН'
+              : match.currentPlayer !== uid
+                ? 'НАБИРАЕТ КАРТЫ'
+                : 'ОЖИДАНИЕ ХОДА'
+          }}</span>
+          <h1>{{ opponentName }}</h1>
+          <div class="stop-status">
+            @if (opponent.stopped) {
+              <span
+                class="stop-badge"
+                role="status"
+                ><span aria-hidden="true">✓</span> СТОП</span
+              >
+            }
+          </div>
+        </div>
+        <div
+          class="win-dots"
+          aria-label="Победы соперника"
+        >
+          @for (win of wins; track win) {
+            <span [class.won]="opponent.wins > win"></span>
+          }
+        </div>
+      </header>
+      <div class="board-grid">
+        @for (card of opponent.board; track match.setNumber + ':' + card.instanceId) {
+          <div class="board-slot">
+            <app-card
+              [card]="card"
+              [signedValue]="card.signedValue"
+            />
+          </div>
+        }
+        @for (slot of slots.slice(opponent.board.length); track slot) {
+          <div class="board-slot">
+            <span class="slot-number">{{ slot + 1 }}</span>
+          </div>
+        }
+      </div>
+      <div class="hand-label">
+        <span>РУКА СОПЕРНИКА</span><span>{{ opponent.handCount }} / 4</span>
+      </div>
+      <div class="hand">
+        @for (index of [0, 1, 2, 3]; track match.setNumber + ':' + index) {
+          @if (index < opponent.handCount) {
+            <div
+              class="card-back"
+              aria-label="Скрытая карта"
+            >
+              <span>✦</span>
+            </div>
+          }
+        }
+      </div>
+    </section>
+  </div>
+  @if (match.phase !== 'playing' && !dealing) {
+    <div class="overlay result-overlay">
+      <section
+        #resultDialog
+        class="modal result-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="result-title"
+      >
+        <span class="eyebrow">{{
+          match.phase === 'setResult' ? 'ИТОГ СЕТА ' + match.setNumber : 'МАТЧ ЗАВЕРШЁН'
+        }}</span>
+        <h2 id="result-title">{{ heading }}</h2>
+        <p>
+          {{
+            match.phase === 'interrupted'
+              ? 'Матч прерван. Победитель не назначен.'
+              : 'Счёт выигранных сетов'
+          }}
+        </p>
+        <div class="result-score">{{ self.wins }} <span>:</span> {{ opponent.wins }}</div>
+        @if (match.phase === 'setResult') {
+          <p>Очки в сете: {{ self.score }} : {{ opponent.score }}</p>
+          <button
+            #resultButton
+            class="button primary"
+            [disabled]="busy || !connected || match.acknowledgements.includes(uid)"
+            (click)="action.emit({ type: 'ack' })"
+          >
+            {{ match.acknowledgements.includes(uid) ? 'Ожидаем соперника…' : 'Следующий сет' }}
+          </button>
+          <button
+            class="text-button"
+            [disabled]="busy || !connected"
+            (click)="decision = 'surrender'"
+          >
+            Сдаться
+          </button>
+        } @else {
+          @if (match.mode === 'campaign' && match.winner === uid) {
+            <p>Результат учтён в кампании. Награда выдаётся за первую победу на планете.</p>
+          }
+          <button
+            #resultButton
+            class="button primary"
+            [disabled]="busy || !connected"
+            (click)="complete.emit()"
+          >
+            ОК
+          </button>
+        }
+        @if (error) {
+          <p
+            class="error"
+            role="alert"
+          >
+            {{ error }}
+          </p>
+        }
+        @if (!connected) {
+          <button
+            class="text-button"
+            (click)="offlineExit.emit()"
+          >
+            Вернуться в меню
+          </button>
+        }
+      </section>
+    </div>
+  }
+  @if (decision) {
+    <app-confirm
+      [message]="
+        decision === 'surrender'
+          ? 'Вы сдадитесь, и соперник победит в матче.'
+          : 'Вы покинете матч. Победа будет засчитана сопернику.'
+      "
+      (accepted)="confirm()"
+      (cancelled)="decision = null"
+    />
+  }
+</main>
