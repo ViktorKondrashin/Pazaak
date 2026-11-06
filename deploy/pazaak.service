@@ -1,0 +1,26 @@
+[Unit]
+Description=Pazaak game server
+After=network.target
+
+[Service]
+Type=simple
+User=pazaak
+Group=pazaak
+WorkingDirectory=/opt/pazaak
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3000
+Environment=DATABASE_PATH=/var/lib/pazaak/pazaak.sqlite
+ExecStart=/usr/bin/node /opt/pazaak/server/index.cjs
+Restart=on-failure
+RestartSec=3
+StateDirectory=pazaak
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
