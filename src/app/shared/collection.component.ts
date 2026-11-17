@@ -63,7 +63,9 @@ import { CardComponent } from './card.component';
           </div>
         }
       </div>
-      <p class="collection-note">Коллекция сохраняется до обновления или закрытия страницы.</p>
+      <p class="collection-note">
+        Коллекция сохраняется в cookie-файлах браузера и остаётся после обновления страницы.
+      </p>
     </dialog>
   `,
 })

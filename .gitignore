@@ -4,10 +4,17 @@ node_modules/
 
 # Результаты сборки и кэши
 dist/
+docs/
 .angular/
 coverage/
 *.tsbuildinfo
 .qa/
+
+# Данные приложения
+/data/
+
+# Архивы сборок
+/artifacts/
 
 # Настройки IDE
 .idea/

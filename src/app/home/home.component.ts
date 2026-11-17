@@ -96,7 +96,7 @@ import { CampaignService } from '../campaign.service';
         <span
           >В коллекции <b>{{ campaign.state().collection.length }}</b> карт · Пройдено
           <b>{{ campaign.state().completed.length }} / 5</b> планет</span
-        ><span>Прогресс действует до обновления страницы</span>
+        ><span>Прогресс сохраняется в cookie-файлах браузера</span>
       </footer>
     </main>
   `,

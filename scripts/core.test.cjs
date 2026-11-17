@@ -60,7 +60,7 @@ const act = (state, payload, uid = state.currentPlayer) =>
 const playFour = { type: 'play', instanceId: 'a-four' };
 const ruleError = (code) => (e) => e.code === code;
 
-test('campaign preparation, bot turns and rewards run without HTTP and reset in a new campaign', (t) => {
+test('campaign preparation, bot turns and rewards work without HTTP or available browser storage', (t) => {
   require('@angular/compiler');
   const { GameService } = require('../src/app/game.service.ts');
   const { CampaignService } = require('../src/app/campaign.service.ts');
@@ -99,6 +99,189 @@ test('campaign preparation, bot turns and rewards run without HTTP and reset in 
   assert.equal(campaign.state().collection.length, 19);
   assert.equal(new CampaignService().state().collection.length, 14);
   assert.equal(http.mock.callCount(), 0);
+});
+
+const {
+  SAVE_COOKIE,
+  SAVE_MAX_AGE,
+  SAVE_MAX_LENGTH,
+  campaignFromSave,
+  defaultSavedProgress,
+  decodeSavedCookie,
+  encodeSavedCookie,
+} = require('../src/app/core/saved-progress.ts');
+
+function cookieDocument(protocol = 'https:') {
+  let cookie = '';
+  return {
+    location: { protocol },
+    lastWrite: '',
+    get cookie() {
+      return cookie;
+    },
+    set cookie(value) {
+      this.lastWrite = value;
+      cookie = value.split(';')[0];
+    },
+    clear() {
+      cookie = '';
+    },
+  };
+}
+
+function cookieServices(document) {
+  require('@angular/compiler');
+  const { BrowserSaveService } = require('../src/app/browser-save.service.ts');
+  const { CampaignService } = require('../src/app/campaign.service.ts');
+  const { SoundService } = require('../src/app/sound.service.ts');
+  const storage = new BrowserSaveService(document);
+  return { storage, campaign: new CampaignService(storage), sound: new SoundService(storage) };
+}
+
+function victory(planetId) {
+  return { mode: 'campaign', phase: 'finished', winner: 'human', planetId };
+}
+
+test('cookie saves restore earned rewards, planet, card selection and sound after a reload', () => {
+  const document = cookieDocument();
+  const first = cookieServices(document);
+  first.campaign.recordResult(victory(1), 'human');
+  first.campaign.recordResult(victory(2), 'human');
+  const selection = first.campaign.state().collection.slice(-10).map((card) => card.instanceId);
+  first.campaign.selectCards(selection);
+  selection[0] = 'not-owned'; // The caller cannot mutate the saved selection.
+  first.campaign.selectPlanet(2);
+  first.sound.toggle();
+
+  const reloaded = cookieServices(document);
+  assert.deepEqual(reloaded.campaign.state().completed, [1, 2]);
+  assert.equal(reloaded.campaign.state().collection.length, 24);
+  assert.equal(new Set(reloaded.campaign.state().collection.map((card) => card.instanceId)).size, 24);
+  assert.equal(reloaded.campaign.selectedPlanet(), 2);
+  assert.deepEqual(reloaded.campaign.selectedCards(), first.campaign.selectedCards());
+  assert.equal(reloaded.sound.enabled(), false);
+  reloaded.campaign.recordResult(victory(2), 'human');
+  assert.equal(reloaded.campaign.state().collection.length, 24);
+  assert.equal(reloaded.campaign.selectedPlanet(), 2);
+
+  assert.match(document.lastWrite, new RegExp(`; Max-Age=${SAVE_MAX_AGE}; Path=/; SameSite=Lax; Secure$`));
+  assert.ok(document.lastWrite.length < 4096);
+  const saved = decodeSavedCookie(document.cookie);
+  assert.deepEqual(Object.keys(saved).sort(), ['completed', 'selectedCards', 'selectedPlanet', 'soundEnabled', 'version']);
+  assert.deepEqual(JSON.parse(decodeURIComponent(document.cookie.split('=')[1])), saved);
+
+  document.clear();
+  const cleared = cookieServices(document);
+  assert.deepEqual(cleared.campaign.state().completed, []);
+  assert.equal(cleared.campaign.state().collection.length, 14);
+  assert.equal(cleared.campaign.selectedPlanet(), 1);
+  assert.deepEqual(cleared.campaign.selectedCards(), []);
+  assert.equal(cleared.sound.enabled(), true);
+});
+
+test('campaign cookies rebuild exactly the catalog rewards for all five planets', () => {
+  const document = cookieDocument('http:');
+  let services = cookieServices(document);
+  for (let planet = 1; planet <= 5; planet++) {
+    services.campaign.recordResult(victory(planet), 'human');
+    services = cookieServices(document);
+    assert.deepEqual(services.campaign.state().completed, Array.from({ length: planet }, (_, i) => i + 1));
+    assert.equal(services.campaign.state().collection.length, [19, 24, 29, 34, 41][planet - 1]);
+    assert.equal(services.campaign.selectedPlanet(), Math.min(planet + 1, 5));
+  }
+  assert.doesNotMatch(document.lastWrite, /; Secure/);
+});
+
+test('cookie writes preserve other settings and an older tab cannot remove earned progress', () => {
+  const document = cookieDocument();
+  const oldTab = cookieServices(document);
+  const newTab = cookieServices(document);
+  newTab.campaign.recordResult(victory(1), 'human');
+  newTab.campaign.recordResult(victory(2), 'human');
+  oldTab.sound.toggle();
+  assert.equal(decodeSavedCookie(document.cookie).completed, 2);
+  oldTab.campaign.selectPlanet(1);
+  const restored = cookieServices(document);
+  assert.deepEqual(restored.campaign.state().completed, [1, 2]);
+  assert.equal(restored.sound.enabled(), false);
+  assert.equal(restored.campaign.selectedPlanet(), 1);
+});
+
+test('planet selection, deck selection and a victory preserve fields changed in another tab', () => {
+  const document = cookieDocument();
+  const oldTab = cookieServices(document);
+  const newTab = cookieServices(document);
+  newTab.campaign.recordResult(victory(1), 'human');
+  const deck = newTab.campaign.state().collection.slice(-10).map((card) => card.instanceId);
+  newTab.campaign.selectCards(deck);
+  oldTab.campaign.selectPlanet(1);
+  assert.deepEqual(cookieServices(document).campaign.selectedCards(), deck);
+
+  newTab.campaign.selectPlanet(2);
+  const oldDeck = oldTab.campaign.state().collection.slice(0, 10).map((card) => card.instanceId);
+  oldTab.campaign.selectCards(oldDeck);
+  assert.equal(cookieServices(document).campaign.selectedPlanet(), 2);
+
+  newTab.campaign.selectCards(deck);
+  oldTab.campaign.recordResult(victory(1), 'human');
+  const restored = cookieServices(document).campaign;
+  assert.deepEqual(restored.selectedCards(), deck);
+  assert.deepEqual(restored.state().completed, [1]);
+  assert.equal(restored.selectedPlanet(), 2);
+});
+
+test('invalid or unsupported cookies safely return initial progress', () => {
+  const values = [
+    '%broken',
+    encodeURIComponent('null'),
+    encodeURIComponent('[]'),
+    encodeURIComponent(JSON.stringify({ version: 2, completed: 3 })),
+    encodeURIComponent(JSON.stringify({ version: 1, completed: 6 })),
+    encodeURIComponent(JSON.stringify({ version: 1, completed: -1 })),
+    encodeURIComponent(JSON.stringify({ version: 1, completed: 1.5 })),
+    encodeURIComponent(JSON.stringify({ version: 1, completed: '2' })),
+    'a'.repeat(SAVE_MAX_LENGTH + 1),
+  ];
+  for (const value of values) {
+    assert.deepEqual(decodeSavedCookie(`${SAVE_COOKIE}=${value}`), defaultSavedProgress());
+  }
+  assert.deepEqual(decodeSavedCookie(`other_${SAVE_COOKIE}=anything`), defaultSavedProgress());
+});
+
+test('cookie validation rejects locked planets, duplicate, unavailable and oversized card selections', () => {
+  const owned = campaignFromSave(defaultSavedProgress()).collection.map((card) => card.instanceId);
+  for (const selection of [['reward-1-0'], ['start-00', 'start-00'], owned.slice(0, 11), [7], 'start-00']) {
+    const encoded = encodeURIComponent(JSON.stringify({ version: 1, completed: 0, selectedPlanet: 5, selectedCards: selection, soundEnabled: 'false' }));
+    const saved = decodeSavedCookie(`unrelated=abc; ${SAVE_COOKIE}=${encoded}; other=def`);
+    assert.equal(saved.completed, 0);
+    assert.equal(saved.selectedPlanet, 1);
+    assert.deepEqual(saved.selectedCards, []);
+    assert.equal(saved.soundEnabled, true);
+  }
+  const partial = { ...defaultSavedProgress(), completed: 1, selectedCards: ['reward-1-0'], soundEnabled: false };
+  assert.deepEqual(decodeSavedCookie(encodeSavedCookie(partial, true)), partial);
+  const { campaign } = cookieServices(cookieDocument());
+  campaign.selectCards(owned.slice(0, 10));
+  campaign.selectCards(['reward-1-0']);
+  assert.deepEqual(campaign.selectedCards(), owned.slice(0, 10));
+  campaign.selectCards([]);
+  assert.deepEqual(campaign.selectedCards(), []);
+});
+
+test('blocked cookies and missing documents do not interrupt campaign or sound actions', () => {
+  const blocked = {
+    get cookie() { throw new Error('Cookies are blocked'); },
+    set cookie(value) { throw new Error('Cookies are blocked'); },
+  };
+  for (const document of [blocked, undefined]) {
+    const { campaign, sound } = cookieServices(document);
+    assert.doesNotThrow(() => campaign.recordResult(victory(1), 'human'));
+    assert.equal(campaign.state().collection.length, 19);
+    assert.doesNotThrow(() => campaign.selectCards(['start-00']));
+    assert.deepEqual(campaign.selectedCards(), ['start-00']);
+    assert.doesNotThrow(() => sound.toggle());
+    assert.equal(sound.enabled(), false);
+  }
 });
 
 test('display sorting groups rewards by kind and nominal without mutating the deck', () => {

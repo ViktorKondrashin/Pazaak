@@ -100,7 +100,7 @@ import { CollectionComponent } from '../shared/collection.component';
         >
           ← Назад
         </a>
-        <p class="muted">Прогресс действует до обновления или закрытия страницы.</p>
+        <p class="muted">Прогресс сохраняется в cookie-файлах. Обновление страницы его не сбросит.</p>
       </footer>
     </main>
   `,

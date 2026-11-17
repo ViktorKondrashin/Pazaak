@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { BrowserSaveService } from './browser-save.service';
 
 type Sound = 'click' | 'card' | 'stop' | 'win' | 'lose' | 'draw';
 
@@ -7,6 +8,10 @@ export class SoundService {
   readonly enabled = signal(true);
   private context?: AudioContext;
   private unlocked = false;
+
+  constructor(private readonly saves: BrowserSaveService = new BrowserSaveService()) {
+    this.enabled.set(saves.load().soundEnabled);
+  }
 
   /** Called only by a user gesture, so there is no autoplay or queued surprise sound. */
   unlock(): void {
@@ -22,6 +27,7 @@ export class SoundService {
 
   toggle(): void {
     this.enabled.update((value) => !value);
+    this.saves.update({ soundEnabled: this.enabled() });
     if (this.enabled()) {
       this.unlock();
       this.play('click');
